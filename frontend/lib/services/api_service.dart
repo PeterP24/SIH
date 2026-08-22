@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -38,13 +37,17 @@ class ApiService {
         throw ApiException('HTTP ${response.statusCode}: ${detail ?? response.body}');
       }
       return body;
-    } on SocketException {
-      throw ApiException(
-          'Cannot reach backend at ${AppConfig.baseUrl}. Is it running?');
+    } on ApiException {
+      rethrow;
     } on TimeoutException {
       throw ApiException('Backend timed out (${AppConfig.baseUrl}).');
     } on FormatException {
       throw ApiException('Malformed response from backend.');
+    } catch (_) {
+      // http.ClientException on web, SocketException on mobile/desktop, plus
+      // any other transport failure: all mean the backend is unreachable.
+      throw ApiException(
+          'Cannot reach backend at ${AppConfig.baseUrl}. Is it running?');
     }
   }
 
