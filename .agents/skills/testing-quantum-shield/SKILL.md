@@ -1,6 +1,6 @@
 ---
 name: testing-quantum-shield
-description: How to run and UI-test the QuantumShield demo (FastAPI + Qiskit Aer backend, Flutter client) end to end — starting services, reaching each screen, and the golden sign → verify → attack → log → analytics flow.
+description: How to run and UI-test the QuantumShield demo (FastAPI + Qiskit Aer backend, Flutter client) end to end — starting services (dev server or the packaged self-hosted bundle), reaching each screen, the golden sign → verify → attack → log → analytics flow, and how to drive the Flutter web UI over CDP when computer-use is unavailable.
 ---
 
 # Testing QuantumShield end to end
@@ -29,6 +29,70 @@ No auth/secrets are required. Backend CORS is permissive.
 Default backend URL on web/desktop is `http://localhost:8000` (Android emulator
 uses `10.0.2.2:8000`); it is editable on the Settings screen and persisted in
 SharedPreferences.
+
+## Testing the packaged bundle (what users actually download)
+
+The distributable serves a **prebuilt Flutter web bundle from the API itself**, so
+there is no separate web server and no URL configuration:
+
+```bash
+cd /path/to/unzipped/quantum-shield && ./start.sh   # start.bat on Windows
+# creates backend/.venv + pip installs on first run, then serves everything on :8000
+curl -s localhost:8000/health && curl -so /dev/null -w '%{http_code}\n' localhost:8000/
+```
+
+`backend/api/main.py` `_web_dir()` looks for `$QDS_WEB_DIR`, then `<repo>/webapp`,
+then `<repo>/frontend/build/web`, and mounts it with
+`app.mount("/", StaticFiles(..., html=True))`. That mount is registered **after**
+the API routes, so `/health`, `/sign`, `/metrics` etc. are not shadowed — verify
+both a static path and an API path return the right content types when testing
+packaging changes.
+
+On web `AppConfig.defaultBaseUrl` is `Uri.base.origin`, i.e. the UI talks to
+whatever origin served it. **To actually prove this rather than a hardcoded
+`localhost:8000`, load the app via a different origin string for the same server
+(`http://127.0.0.1:8000/`) and confirm the API calls go to `127.0.0.1`, not
+`localhost`.** The Settings "Base URL" field is not a reliable read-out here: its
+helper text always shows the static `Android emulator … · desktop …` hint, and
+with CanvasKit the field's value is not mirrored into the DOM — use the network
+log instead.
+
+When testing the package, make sure no stale `flutter run -d web-server` on :8080
+is around, and confirm the :8000 listener is really the unzipped copy
+(`ls -l /proc/$(lsof -ti:8000)/cwd`).
+
+## Driving the UI when computer-use / recording is unavailable
+
+The GUI desktop session can die (symptoms: `computer` actions fail with
+"enigo init failed: no connection could be established", `recording_start` fails
+with "FFmpeg exited immediately", `/tmp/.X11-unix/` empty, no Chrome process).
+Starting your own `Xvfb :0` restores an X server but does **not** make the
+`computer` tool re-attach, so GUI testing stays blocked and you must say so in the
+report. A workable fallback that still exercises the real bundle in a real Chrome:
+
+```bash
+google-chrome --headless=new --no-sandbox --disable-gpu \
+  --remote-debugging-port=9222 --user-data-dir=/tmp/cdp-profile --window-size=1600,1000 about:blank
+```
+
+Then drive it over CDP (`websockets` is available system-wide; note `/json/new`
+requires **PUT** on modern Chrome). Keys to making a CanvasKit Flutter app
+inspectable:
+
+- Flutter renders to WebGL, so `document.body.innerText` is empty and there are
+  no ordinary DOM nodes. Enable the accessibility tree first:
+  `document.querySelector('flt-semantics-placeholder').click()`.
+- After that, `document.querySelectorAll('flt-semantics')` exposes every label;
+  `getBoundingClientRect()` gives coordinates you can click with
+  `Input.dispatchMouseEvent` (mousePressed + mouseReleased).
+- Nav rail items have labels like `"Sign\nTab 2 of 7"` — match exactly to avoid
+  hitting the "Sign a message" heading or the "Generate quantum signature" button.
+- The semantics tree repeats ancestor labels, so de-duplicate before reading.
+- `Page.captureScreenshot` still yields real PNGs for artifacts, but headless
+  Chrome logs benign `Automatic fallback to software WebGL` warnings — ignore
+  those when checking for console-fatal errors.
+- Backend work is genuinely slow (Qiskit Aer): allow ~10–15s after clicking
+  Generate/Verify/Launch attack before reading the result.
 
 ## Navigating the UI
 
