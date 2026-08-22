@@ -11,10 +11,14 @@ class AppConfig {
   static const _prefsKey = 'backend_base_url';
 
   /// Sensible per-platform default:
+  /// * on the web the bundle is served by the API itself, so use the page origin
   /// * Android emulator reaches the host machine through 10.0.2.2
   /// * desktop / iOS simulator talk to localhost directly
   static String get defaultBaseUrl {
-    if (kIsWeb) return 'http://localhost:8000';
+    if (kIsWeb) {
+      final origin = Uri.base.origin;
+      return origin.startsWith('http') ? origin : 'http://localhost:8000';
+    }
     if (Platform.isAndroid) return 'http://10.0.2.2:8000';
     return 'http://localhost:8000';
   }

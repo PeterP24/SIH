@@ -1,9 +1,10 @@
 # QuantumShield — 5-minute demo script (SIH PS 26141)
 
 ## Before you present
-1. `cd backend && .venv/bin/python run.py` (leave running).
-2. `cd frontend && flutter run -d chrome` (or the Windows/Android build on a projector).
-3. Run one sign + one verify + one attack beforehand so the Dashboard and Analytics
+1. Run `start.bat` (Windows) or `./start.sh` (macOS/Linux) and let http://localhost:8000/ open.
+   That single command serves both the API and the UI — no Flutter needed on the demo machine.
+   (For a native build instead: `cd frontend && flutter run`.)
+2. Run one sign + one verify + one attack beforehand so the Dashboard and Analytics
    aren't empty when you open them.
 
 ## The one-line pitch

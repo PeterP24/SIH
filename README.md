@@ -14,9 +14,23 @@ quantum-shield/
 │   ├── attacks/        forgery / replay / impersonation / channel manipulation / baseline
 │   ├── api/            REST layer, schemas, SQLite storage, metrics
 │   └── tests/          protocol + REST end-to-end tests
-└── frontend/           Flutter app (Android, iOS, Windows, web/desktop for demos)
-    └── lib/            screens/, services/, models/, state/, theme/, widgets/
+├── frontend/           Flutter app (Android, iOS, Windows, web/desktop for demos)
+│   └── lib/            screens/, services/, models/, state/, theme/, widgets/
+├── webapp/             prebuilt web UI (index.html) served by the backend
+├── start.sh            one-command launcher (macOS/Linux)
+└── start.bat           one-command launcher (Windows)
 ```
+
+## Quick start (no Flutter needed)
+
+Only Python 3.10+ is required — the compiled web UI ships in `webapp/`.
+
+- **Windows:** double-click `start.bat`
+- **macOS/Linux:** `./start.sh`
+
+The first run creates a virtualenv and installs dependencies (a minute or two), then the
+app opens at **http://localhost:8000/** — the UI and the API are served from the same
+address, so there is nothing to configure. Press Ctrl+C (or close the window) to stop.
 
 ## How the protocol works (demo talking points)
 

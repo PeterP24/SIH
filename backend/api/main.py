@@ -21,6 +21,7 @@ from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from attacks import ATTACK_DESCRIPTIONS, ATTACK_TYPES, AttackSimulator
 from quantum_core.signature import (
@@ -230,3 +231,19 @@ def attack_types() -> List[AttackTypeInfo]:
         AttackTypeInfo(attack_type=name, description=ATTACK_DESCRIPTIONS[name])
         for name in ATTACK_TYPES
     ]
+
+
+def _web_dir() -> Optional[Path]:
+    """Locate a compiled Flutter web bundle to serve as the demo UI."""
+    configured = os.getenv("QDS_WEB_DIR")
+    root = Path(__file__).resolve().parents[2]
+    candidates = [Path(configured)] if configured else []
+    candidates += [root / "webapp", root / "frontend" / "build" / "web"]
+    return next((c for c in candidates if (c / "index.html").is_file()), None)
+
+
+# Serving the web bundle from the API origin means the browser demo needs no
+# separate web server and no backend-URL configuration: http://localhost:8000/
+WEB_DIR = _web_dir()
+if WEB_DIR is not None:
+    app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="webapp")
