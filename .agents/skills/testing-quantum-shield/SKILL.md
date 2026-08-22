@@ -64,18 +64,25 @@ is `verifications + attacks`, not `verifications`.
 
 ## Known pitfalls
 
-- **Offline handling is broken on web.** `ApiService._send`
-  (`frontend/lib/services/api_service.dart`) only catches `SocketException`
-  (dart:io), but on Flutter web `package:http` throws `http.ClientException`
-  when the connection is refused. That exception escapes the screens'
-  `on ApiException` handlers, so with the backend stopped the UI hangs
-  (Dashboard renders blank, Sign is stuck on "Teleporting qubits…") and the
-  badge stays "Backend online". If you test offline behaviour and see a hang
-  rather than an error banner, this is likely the cause; a workaround for
-  exercising the error UI is to trigger an HTTP error instead (e.g. verify a
-  nonexistent signature id → 404 → ErrorPanel + "Offline" badge), or point the
-  Settings backend URL at a bad host. This may be fixed by catching
-  `http.ClientException` / a bare `catch`.
+- **Offline handling depends on `_send` catching transport errors generically.**
+  On Flutter web `package:http` throws `http.ClientException` (not
+  `SocketException`) when the connection is refused, so `ApiService._send`
+  (`frontend/lib/services/api_service.dart`) must have a bare `catch (_)`
+  fallback mapping it to `ApiException`. Without it the exception escapes the
+  screens' `on ApiException` handlers and the UI hangs forever (Dashboard
+  blank, Sign stuck on "Teleporting qubits…") with the badge still reading
+  "Backend online". To test offline behaviour: `pkill -f run.py`, then
+  re-navigate to Dashboard — you should see an ErrorPanel reading
+  "Cannot reach backend at http://localhost:8000. Is it running?" with a Retry
+  button and a red "Offline" badge. If you instead see a hang, that catch
+  clause has regressed. A separate way to exercise the error UI without
+  stopping the backend is to trigger an HTTP error (verify a nonexistent
+  signature id → 404 → ErrorPanel) or point the Settings backend URL at a bad
+  host.
+- Flutter web has **no hot reload from an outside process**; after changing
+  Dart code, kill and relaunch `flutter run -d web-server` (~60s rebuild) and
+  hard-reload the browser tab (ctrl+shift+r), otherwise you are testing stale
+  JS.
 - Typing into Flutter-web `TextField`s via xdotool can drop the first
   character after a `ctrl+a`; always screenshot and read back the field before
   asserting on hashes or ids.
