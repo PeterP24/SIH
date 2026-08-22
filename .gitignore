@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Databases / runtime data
+backend/data/
+*.db
+*.sqlite3
+
+# Flutter / Dart
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/ios/Pods/
+frontend/windows/flutter/ephemeral/
+frontend/linux/flutter/ephemeral/
+*.iml
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
